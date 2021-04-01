@@ -1,0 +1,63 @@
+Public TimerEnabled As Boolean 'https://www.cnblogs.com/yuhuameng/p/10224249.html
+   
+  Sub EnableTimer() '开始
+    TimerEnabled = True
+    StartTimer
+  End Sub
+   
+  Sub DisableTimer() '停用
+    TimerEnabled = False
+  End Sub
+   
+  Sub StartTimer()      '注意改代码需要放在模块级
+      If TimerEnabled = True Then
+        Application.OnTime Now + TimeValue("00:01:59"), "StartTimer" '每55秒钟自动运行一次
+        新浪股票 '需要每秒运行的代码
+      End If
+  End Sub
+   
+  Sub 新浪股票()
+      'http://hq.sinajs.cn/list=sh600519,sz000729
+      Dim xmlobject As Object
+      Dim strReturn As String
+      Dim strUrl As String
+      Dim intLen As Long
+      Dim intLenA As Long
+      Dim arry As Variant
+      Dim rowCount As Long
+    
+      rowCount = Application.CountA(ActiveSheet.Range("A:A")) 'http://www.360doc.com/content/19/0529/19/8176517_839041633.shtml
+
+      Set xmlobject = CreateObject("microsoft.xmlhttp")
+   
+      For i = 1 To rowCount - 1 '遍历，5等于当前股票行数
+   
+      strUrl = "http://hq.sinajs.cn/list=" & Cells(1 + i, 1) '起始股票代码单元格，格式要求前缀sz或sh,cells(行，列)
+      xmlobject.Open "GET", strUrl, False
+      xmlobject.send
+      If xmlobject.readystate = 4 Then
+          strReturn = xmlobject.responsetext '返回的文本
+          intLen = Len(strReturn) - 22 - 3 '剔除无关数据,22为双引号前字符数，3为双引号后字符数
+          strReturn = Mid(strReturn, 22, intLen) 'MID函数用于从指定位置开始，提取用户指定的字符数, var hq_str_sh600519="
+          'strReturn = Mid(A21, Find("=", strReturn, 1) + 3, Len(strReturn) - Find("=", strReturn, 1) - 3)
+          arry = Split(strReturn, ",") '按逗号分隔数据，放入数组arry
+          intLenA = UBound(arry) - LBound(arry) + 1 '数组长度，可结合For遍历arry；数组下限：LBOUND(数组）  结果：一般为0；数组上限：UBOUND(数组）
+       
+         '获取目标数据
+         Cells(1 + i, 2) = arry(0) '名称
+         Cells(1 + i, 3) = Round((arry(3) - arry(2)) / arry(2), 4) * 100 '涨跌幅
+         Cells(1 + i, 4) = arry(3) '现价
+         'Cells(1 + i, 5) = arry(1) '今开
+         'Cells(1 + i, 6) = arry(2) '昨收
+         'Cells(1 + i, 7) = arry(4) '最高
+         'Cells(1 + i, 8) = arry(5) '最低
+         'Cells(1 + i, 9) = arry(8) / 1000000 '成交量
+         'Cells(1 + i, 10) = arry(9) / 10000 '成交额
+         'Cells(1 + i, 5) = arry(intLenA - 3)  '日期
+         'Cells(1 + i, 5) = arry(intLenA - 2)  '时间
+         'Cells(1 + i, 5) = arry(intLenA - 1)  '状态，0正常，参考https://github.com/squirrelm/china-stock-crawler/wiki/%E6%96%B0%E6%B5%AA%E8%B4%A2%E7%BB%8F%E4%B8%AA%E8%82%A1%E4%BF%A1%E6%81%AFAPI
+         '科创板和创业板因为有尾盘集合竞价，返回list末尾的内容略有不同
+       
+      End If
+      Next i
+  End Sub
